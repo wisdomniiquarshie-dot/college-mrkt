@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { createPortal } from "react-dom";
 import type { User } from "@supabase/supabase-js";
 import { LoaderCircle, LogIn, LogOut, UserRound, X } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export function AuthControl() {
   const [user, setUser] = useState<User | null>(null);
+  const dialogRef = useRef<HTMLElement | null>(null);
+  const [mounted, setMounted] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [mode, setMode] = useState<"sign-in" | "sign-up">("sign-in");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -14,6 +17,7 @@ export function AuthControl() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    setMounted(true);
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
     supabase.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null));
@@ -23,13 +27,17 @@ export function AuthControl() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
+  useEffect(() => {
+    if (dialogOpen) dialogRef.current?.scrollTo(0, 0);
+  }, [dialogOpen, mode]);
+
   async function submitAuth(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     setFeedback("");
     const supabase = getSupabaseBrowserClient();
     if (!supabase) {
-      setError("Add your Supabase project URL and anon key to .env.local first.");
+      setError("Supabase is not configured. Add the Project URL and publishable key from Supabase → Project Settings → API Keys to .env.local, then restart the app.");
       return;
     }
 
@@ -62,7 +70,13 @@ export function AuthControl() {
         }
       }
     } catch (authError) {
-      setError(authError instanceof Error ? authError.message : "Authentication failed. Please try again.");
+      setError(
+        authError instanceof TypeError
+          ? "Could not reach Supabase. Check the project URL and your internet connection, then try again."
+          : authError instanceof Error
+            ? authError.message
+            : "Authentication failed. Please try again.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -86,9 +100,9 @@ export function AuthControl() {
         </button>
       )}
 
-      {dialogOpen && (
+      {dialogOpen && mounted && createPortal(
         <div role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setDialogOpen(false); }} className="fixed inset-0 z-50 flex items-end justify-center bg-[#17231b]/55 p-0 sm:items-center sm:p-5">
-          <section role="dialog" aria-modal="true" aria-labelledby="auth-heading" className="max-h-[90dvh] w-full max-w-md overflow-y-auto bg-[#fffdf7] p-5 sm:p-7">
+          <section ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="auth-heading" className="max-h-[90dvh] w-full max-w-md overflow-y-auto bg-[#fffdf7] p-5 sm:p-7">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#d9b36b]">COLLEGE MRKT</p>
@@ -122,7 +136,8 @@ export function AuthControl() {
               </button>
             </p>
           </section>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );

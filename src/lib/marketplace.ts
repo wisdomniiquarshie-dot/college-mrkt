@@ -3,13 +3,261 @@ export const CATEGORIES = [
   "Fashion",
   "Hostel Gear",
   "Textbooks",
+  "Food and Drinks",
+  "Beauty and Personal Care",
+  "Accessories",
+  "Furniture",
   "Services",
+  "Accommodation",
+  "Other",
 ] as const;
 
 export const CONDITIONS = ["New", "Like New", "Fair", "Refurbished"] as const;
 
 export type Category = (typeof CATEGORIES)[number];
 export type ItemCondition = (typeof CONDITIONS)[number];
+
+export const ACCOUNT_TYPES = [
+  { value: "student_seller", label: "Average student" },
+  { value: "student_business", label: "Student business owner" },
+  { value: "campus_business", label: "Business around campus" },
+  { value: "accommodation_advertiser", label: "Accommodation advertiser" },
+  { value: "regular_advertiser", label: "Regular advertiser" },
+] as const;
+
+export type AccountType = (typeof ACCOUNT_TYPES)[number]["value"];
+
+export const ADMIN_ROLES = ["admin", "moderator"] as const;
+export type SellerRole = (typeof ADMIN_ROLES)[number] | "student";
+
+export type PlanDefinition = {
+  key: AccountType;
+  name: string;
+  price: number;
+  listingLimit: number;
+  description: string;
+  details: string[];
+  minProposedPrice: number | null;
+  maxProposedPrice: number | null;
+  billingPeriod: string;
+  promotionDurationDays: number;
+  aiGenerationLimit: number;
+  effectiveStart: string | null;
+  effectiveEnd: string | null;
+  isActive: boolean;
+  promotionAvailable: boolean;
+  availableForPurchase: boolean;
+};
+
+export type PaymentVerificationStatus = "pending" | "verified" | "rejected";
+
+export type MarketplacePlan = {
+  id: string;
+  plan_key: AccountType;
+  plan_name: string;
+  description: string | null;
+  price_ghs: number;
+  min_proposed_price: number | null;
+  max_proposed_price: number | null;
+  billing_period: string;
+  listing_limit: number;
+  promotion_duration_days: number;
+  benefits: string[];
+  ai_generation_limit: number;
+  effective_start: string | null;
+  effective_end: string | null;
+  subscription_status: "active" | "inactive";
+  promotion_available: boolean;
+  available_for_purchase: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PlanSubscription = {
+  id: string;
+  payment_request_id: string | null;
+  user_id: string;
+  plan_key: AccountType;
+  plan_name: string;
+  price_ghs: number;
+  billing_period: string;
+  listing_limit: number;
+  promotion_duration_days: number;
+  benefits: string[];
+  ai_generation_limit: number;
+  promotion_available: boolean;
+  starts_at: string;
+  expires_at: string;
+  status: "pending" | "active" | "expired" | "cancelled";
+  change_reason: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PaymentRequest = {
+  id: string;
+  user_id: string;
+  plan_key: string;
+  plan_name: string;
+  amount_ghs: number;
+  payment_method: string;
+  payment_reference: string | null;
+  payment_date: string | null;
+  plan_snapshot: Record<string, unknown>;
+  verification_status: PaymentVerificationStatus;
+  verified_by: string | null;
+  service_start_date: string | null;
+  service_end_date: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MarketplacePaymentSettings = {
+  id: boolean;
+  network: string;
+  recipient_name: string;
+  recipient_number: string;
+  instructions: string;
+  updated_at: string;
+};
+
+export const PLAN_DEFINITIONS: PlanDefinition[] = [
+  {
+    key: "student_seller",
+    name: "Student Seller",
+    price: 0,
+    listingLimit: 5,
+    description: "Basic student marketplace access for personal selling.",
+    details: ["5 active listings", "Personal seller profile", "WhatsApp and phone contact", "Basic listing management"],
+    minProposedPrice: null,
+    maxProposedPrice: null,
+    billingPeriod: "monthly",
+    promotionDurationDays: 0,
+    aiGenerationLimit: 0,
+    effectiveStart: null,
+    effectiveEnd: null,
+    isActive: true,
+    promotionAvailable: false,
+    availableForPurchase: true,
+  },
+  {
+    key: "student_business",
+    name: "Student Business",
+    price: 20,
+    listingLimit: 20,
+    description: "For student-run businesses and side hustles near campus.",
+    details: ["20 active listings", "Business profile", "WhatsApp + phone contact", "Optional featured promos"],
+    minProposedPrice: null,
+    maxProposedPrice: null,
+    billingPeriod: "monthly",
+    promotionDurationDays: 7,
+    aiGenerationLimit: 10,
+    effectiveStart: null,
+    effectiveEnd: null,
+    isActive: true,
+    promotionAvailable: true,
+    availableForPurchase: true,
+  },
+  {
+    key: "campus_business",
+    name: "Business Plus",
+    price: 50,
+    listingLimit: 50,
+    description: "For larger campus-area businesses and retail operators.",
+    details: ["50 active listings", "Enhanced profile", "Priority promotional options", "Better visibility tools"],
+    minProposedPrice: null,
+    maxProposedPrice: null,
+    billingPeriod: "monthly",
+    promotionDurationDays: 14,
+    aiGenerationLimit: 30,
+    effectiveStart: null,
+    effectiveEnd: null,
+    isActive: true,
+    promotionAvailable: true,
+    availableForPurchase: true,
+  },
+  {
+    key: "accommodation_advertiser",
+    name: "Accommodation Advertiser",
+    price: 0,
+    listingLimit: 20,
+    description: "For hostel and accommodation listings around ATU.",
+    details: ["Accommodation listings", "Location details", "Hostel promotion support", "Basic business exposure"],
+    minProposedPrice: null,
+    maxProposedPrice: null,
+    billingPeriod: "monthly",
+    promotionDurationDays: 7,
+    aiGenerationLimit: 5,
+    effectiveStart: null,
+    effectiveEnd: null,
+    isActive: true,
+    promotionAvailable: true,
+    availableForPurchase: true,
+  },
+  {
+    key: "regular_advertiser",
+    name: "Regular Advertiser",
+    price: 50,
+    listingLimit: 10,
+    description: "For general campus advertising and promotions.",
+    details: ["Advertiser profile", "Promotional visibility", "Custom campaign support", "Managed package options"],
+    minProposedPrice: null,
+    maxProposedPrice: null,
+    billingPeriod: "monthly",
+    promotionDurationDays: 30,
+    aiGenerationLimit: 20,
+    effectiveStart: null,
+    effectiveEnd: null,
+    isActive: true,
+    promotionAvailable: true,
+    availableForPurchase: true,
+  },
+];
+
+export function toPlanDefinition(plan: MarketplacePlan): PlanDefinition {
+  return {
+    key: plan.plan_key,
+    name: plan.plan_name,
+    price: Number(plan.price_ghs),
+    listingLimit: plan.listing_limit,
+    description: plan.description ?? "",
+    details: plan.benefits,
+    minProposedPrice: plan.min_proposed_price === null ? null : Number(plan.min_proposed_price),
+    maxProposedPrice: plan.max_proposed_price === null ? null : Number(plan.max_proposed_price),
+    billingPeriod: plan.billing_period,
+    promotionDurationDays: plan.promotion_duration_days,
+    aiGenerationLimit: plan.ai_generation_limit,
+    effectiveStart: plan.effective_start,
+    effectiveEnd: plan.effective_end,
+    isActive: plan.is_active && plan.subscription_status === "active",
+    promotionAvailable: plan.promotion_available,
+    availableForPurchase: plan.available_for_purchase,
+  };
+}
+
+export function getPlanDefinition(
+  accountType: string | null | undefined,
+  plans: PlanDefinition[] = PLAN_DEFINITIONS,
+): PlanDefinition {
+  const normalizedAccountType = (accountType ?? "student_seller") as AccountType;
+  return plans.find((plan) => plan.key === normalizedAccountType) ?? plans[0] ?? PLAN_DEFINITIONS[0];
+}
+
+export function getListingLimit(accountType: string | null | undefined, plans?: PlanDefinition[]) {
+  return getPlanDefinition(accountType, plans).listingLimit;
+}
+
+export function getListingLimitNotice(
+  accountType: string | null | undefined,
+  currentCount: number,
+  plans?: PlanDefinition[],
+) {
+  const plan = getPlanDefinition(accountType, plans);
+  const remaining = Math.max(plan.listingLimit - currentCount, 0);
+  return `You have used ${currentCount} of ${plan.listingLimit} active listings. ${remaining === 0 ? "Mark an item as sold or remove a listing before posting another." : `You can post ${remaining} more active listing${remaining === 1 ? "" : "s"}.`}`;
+}
 
 export type Listing = {
   id: string;
@@ -21,6 +269,37 @@ export type Listing = {
   description: string;
   image_urls: string[];
   created_at: string;
+  updated_at?: string;
+  status?: string;
+  is_available?: boolean;
+  accommodation_type?: "hostel" | "apartment" | "self_contained" | "single_room" | "shared_room" | "other" | null;
+  town?: string | null;
+  property_address?: string | null;
+  advance_payment_months?: number | null;
+  available_rooms?: number | null;
+  amenities?: string[];
+  accommodation_status?: "available" | "paused" | "unavailable" | "rented";
+  accommodation_contact_phone?: string | null;
+};
+
+export type AccommodationAdvertiserApplication = {
+  id: string;
+  user_id: string;
+  applicant_name: string;
+  applicant_role: "hostel_owner" | "landlord" | "property_manager" | "authorised_agent";
+  phone_number: string;
+  whatsapp_number: string;
+  business_name: string;
+  town: string;
+  property_address: string;
+  description: string;
+  authorization_confirmed: boolean;
+  status: "pending" | "approved" | "rejected" | "suspended";
+  admin_notes: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 export type SellerProfile = {
@@ -28,15 +307,21 @@ export type SellerProfile = {
   full_name: string;
   campus_area: string | null;
   whatsapp_number: string;
+  account_type: AccountType;
+  role: SellerRole;
+  is_contact_public: boolean;
 };
 
-export type ListingWithSeller = Listing & { seller: SellerProfile | null };
+export type PublicSellerProfile = Omit<SellerProfile, "account_type" | "is_contact_public" | "role">;
+
+export type ListingWithSeller = Listing & { seller: PublicSellerProfile | null };
 
 export function formatPrice(price: number) {
   return new Intl.NumberFormat("en-GH", {
     style: "currency",
     currency: "GHS",
-    maximumFractionDigits: 0,
+    minimumFractionDigits: Number.isInteger(price) ? 0 : 2,
+    maximumFractionDigits: 2,
   }).format(price);
 }
 
@@ -56,56 +341,3 @@ export function getWhatsAppUrl(phone: string, message: string) {
     : null;
 }
 
-export const DEMO_LISTINGS: Listing[] = [
-  {
-    id: "demo-calculator",
-    seller_id: "demo-seller",
-    title: "Casio scientific calculator",
-    category: "Electronics",
-    price: 180,
-    condition: "Like New",
-    description: "FX-991ES Plus. All functions work perfectly. Great for engineering and maths courses.",
-    image_urls: ["https://images.unsplash.com/photo-1587145820266-a5951ee6f620?auto=format&fit=crop&w=1000&q=85"],
-    created_at: "2026-10-02T10:00:00.000Z",
-  },
-  {
-    id: "demo-textbooks",
-    seller_id: "demo-seller",
-    title: "Engineering mathematics set",
-    category: "Textbooks",
-    price: 240,
-    condition: "Fair",
-    description: "Three useful engineering mathematics books. Some highlighting, no missing pages.",
-    image_urls: ["https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&w=1000&q=85"],
-    created_at: "2026-10-01T15:30:00.000Z",
-  },
-  {
-    id: "demo-backpack",
-    seller_id: "demo-seller",
-    title: "Everyday canvas backpack",
-    category: "Fashion",
-    price: 320,
-    condition: "New",
-    description: "Roomy canvas backpack with a padded laptop pocket and comfortable straps.",
-    image_urls: ["https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=1000&q=85"],
-    created_at: "2026-09-30T08:45:00.000Z",
-  },
-  {
-    id: "demo-lamp",
-    seller_id: "demo-seller",
-    title: "Desk lamp with warm light",
-    category: "Hostel Gear",
-    price: 150,
-    condition: "Like New",
-    description: "Compact adjustable desk lamp, ideal for late-night study sessions.",
-    image_urls: ["https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=1000&q=85"],
-    created_at: "2026-09-29T12:15:00.000Z",
-  },
-];
-
-export const DEMO_SELLER: SellerProfile = {
-  id: "demo-seller",
-  full_name: "Ama Mensah",
-  campus_area: "Accra Technical University",
-  whatsapp_number: "0241234567",
-};

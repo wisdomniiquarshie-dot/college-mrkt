@@ -1,16 +1,23 @@
-import { createClient } from "@supabase/supabase-js";
+import { createServerClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { cookies } from "next/headers";
 import type { Database } from "@/lib/database.types";
+import { getSupabaseConfig } from "@/lib/supabase/config";
 
-export function getSupabaseServerClient(): SupabaseClient<Database> | null {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+export async function getSupabaseServerClient(): Promise<SupabaseClient<Database> | null> {
+  const config = getSupabaseConfig();
+  if (!config) return null;
 
-  if (!url || !key || url.includes("your_supabase") || key.includes("your_supabase")) {
+  try {
+    const cookieStore = await cookies();
+    return createServerClient<Database>(config.url, config.key, {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+      },
+    });
+  } catch {
     return null;
   }
-
-  return createClient<Database>(url, key, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
 }

@@ -21,21 +21,23 @@ import {
   getWhatsAppUrl,
   type ListingWithSeller,
 } from "@/lib/marketplace";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { getSupabaseBrowserClient, getSupabaseErrorMessage } from "@/lib/supabase/client";
 
-type ListingDetailProps = { listing: ListingWithSeller };
+type ListingDetailProps = { listing: ListingWithSeller; isPreview?: boolean };
 
-export function ListingDetail({ listing }: ListingDetailProps) {
+export function ListingDetail({ listing, isPreview = false }: ListingDetailProps) {
   const [photoIndex, setPhotoIndex] = useState(0);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportMessage, setReportMessage] = useState("");
   const [reportError, setReportError] = useState("");
   const [isReporting, setIsReporting] = useState(false);
   const photos = listing.image_urls;
-  const whatsappUrl = listing.seller
+  const isAccommodation = listing.category === "Accommodation";
+  const contactNumber = isAccommodation ? listing.accommodation_contact_phone : listing.seller?.whatsapp_number;
+  const whatsappUrl = contactNumber
     ? getWhatsAppUrl(
-        listing.seller.whatsapp_number,
-        `Hi ${listing.seller.full_name}, I'm interested in your ${listing.title} listed for ${formatPrice(listing.price)}. Is it still available?`,
+        contactNumber,
+        `Hi, I'm interested in ${listing.title} listed for ${formatPrice(listing.price)}. Is it still available?`,
       )
     : null;
   const postedDate = new Intl.DateTimeFormat("en-GH", {
@@ -72,7 +74,7 @@ export function ListingDetail({ listing }: ListingDetailProps) {
       setReportMessage("Thanks. Your report has been sent for review.");
       setReportOpen(false);
     } catch (submissionError) {
-      setReportError(submissionError instanceof Error ? submissionError.message : "Your report could not be sent.");
+      setReportError(getSupabaseErrorMessage(submissionError, "Your report could not be sent."));
     } finally {
       setIsReporting(false);
     }
@@ -84,6 +86,11 @@ export function ListingDetail({ listing }: ListingDetailProps) {
         <ArrowLeft aria-hidden="true" className="h-4 w-4" />
         Back to listings
       </Link>
+      {isPreview && (
+        <p role="status" className="mt-5 border-l-2 border-[#d29337] bg-[#f5f0df] px-3 py-2 text-xs leading-5 text-[#62563e]">
+          Preview listing only. Seller contact and reporting become available when the live marketplace is connected.
+        </p>
+      )}
 
       <div className="mt-6 grid gap-8 md:mt-9 md:grid-cols-[minmax(0,1.08fr)_minmax(340px,0.92fr)] md:gap-12 lg:gap-16">
         <section aria-label="Listing photos">
@@ -122,11 +129,28 @@ export function ListingDetail({ listing }: ListingDetailProps) {
           <div className="mt-5 flex items-center gap-2 border-y border-[#d9d9ce] py-3 text-xs text-[#747b72]">
             <span>Posted {postedDate}</span>
             <span aria-hidden="true" className="text-[#b8bcb2]">/</span>
-            <span>Accra Technical University</span>
+            <span>{listing.town ?? "Accra Technical University"}</span>
           </div>
 
+          {isAccommodation && (
+            <section className="mt-6 border border-[#e7d5a6] bg-[#fff9e9] p-4 text-sm leading-6 text-[#695622]">
+              <h2 className="font-bold text-[#4e452e]">Verify before paying</h2>
+              <p>Confirm the property and the advertiser’s authority in person before sending rent or an advance payment. COLLEGE MRKT does not hold payments.</p>
+            </section>
+          )}
+
+          {isAccommodation && (
+            <dl className="mt-6 grid grid-cols-2 gap-3 border-y border-[#d9d9ce] py-5 text-sm">
+              <div><dt className="text-xs font-semibold text-[#747b72]">Property type</dt><dd className="mt-1 font-semibold text-[#27372d]">{listing.accommodation_type?.replaceAll("_", " ") ?? "Accommodation"}</dd></div>
+              <div><dt className="text-xs font-semibold text-[#747b72]">Advance payment</dt><dd className="mt-1 font-semibold text-[#27372d]">{listing.advance_payment_months ?? 0} months</dd></div>
+              {listing.available_rooms !== null && listing.available_rooms !== undefined && <div><dt className="text-xs font-semibold text-[#747b72]">Available rooms</dt><dd className="mt-1 font-semibold text-[#27372d]">{listing.available_rooms}</dd></div>}
+              {listing.property_address && <div className="col-span-2"><dt className="text-xs font-semibold text-[#747b72]">Address</dt><dd className="mt-1 font-semibold text-[#27372d]">{listing.property_address}</dd></div>}
+              {listing.amenities?.length ? <div className="col-span-2"><dt className="text-xs font-semibold text-[#747b72]">Amenities</dt><dd className="mt-1 text-[#27372d]">{listing.amenities.join(" · ")}</dd></div> : null}
+            </dl>
+          )}
+
           <div className="mt-7">
-            <h2 className="text-sm font-bold text-[#2d3931]">About this item</h2>
+            <h2 className="text-sm font-bold text-[#2d3931]">{isAccommodation ? "About this property" : "About this item"}</h2>
             <p className="mt-2 whitespace-pre-line text-sm leading-7 text-[#616b62]">{listing.description}</p>
           </div>
 
@@ -135,20 +159,20 @@ export function ListingDetail({ listing }: ListingDetailProps) {
             {listing.seller ? (
               <div className="mt-3 flex items-start justify-between gap-4">
                 <div>
-                  <p className="font-semibold text-[#27372d]">{listing.seller.full_name}</p>
+                  <p className="font-semibold text-[#27372d]">{isAccommodation ? listing.title : listing.seller.full_name}</p>
                   {listing.seller.campus_area && <p className="mt-1 flex items-center gap-1.5 text-sm text-[#727970]"><MapPin aria-hidden="true" className="h-3.5 w-3.5" />{listing.seller.campus_area}</p>}
                 </div>
-                <span className="flex shrink-0 items-center gap-1.5 text-[11px] font-semibold text-[#54725a]"><ShieldCheck aria-hidden="true" className="h-4 w-4" />Campus seller</span>
+                {!isPreview && <span className="flex shrink-0 items-center gap-1.5 text-[11px] font-semibold text-[#54725a]"><ShieldCheck aria-hidden="true" className="h-4 w-4" />Campus seller</span>}
               </div>
             ) : (
-              <p className="mt-3 text-sm text-[#727970]">Seller profile not available.</p>
+              <p className="mt-3 text-sm text-[#727970]">{isPreview ? "Sample listing with no real seller attached." : "Seller profile not available."}</p>
             )}
           </div>
 
           {reportMessage && <p role="status" className="mt-4 flex items-center gap-2 text-sm text-[#426148]"><Check aria-hidden="true" className="h-4 w-4" />{reportMessage}</p>}
-          <button type="button" onClick={() => { setReportOpen(true); setReportError(""); }} className="mt-5 inline-flex min-h-10 w-fit items-center gap-2 text-xs font-semibold text-[#70776e] underline decoration-[#b8bcb2] underline-offset-4 hover:text-[#9c4531]">
+          {!isPreview && <button type="button" onClick={() => { setReportOpen(true); setReportError(""); }} className="mt-5 inline-flex min-h-10 w-fit items-center gap-2 text-xs font-semibold text-[#70776e] underline decoration-[#b8bcb2] underline-offset-4 hover:text-[#9c4531]">
             <Flag aria-hidden="true" className="h-4 w-4" />Report listing
-          </button>
+          </button>}
         </section>
       </div>
 
@@ -167,7 +191,7 @@ export function ListingDetail({ listing }: ListingDetailProps) {
         )}
       </div>
 
-      {reportOpen && (
+      {reportOpen && !isPreview && (
         <div role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setReportOpen(false); }} className="fixed inset-0 z-40 flex items-end justify-center bg-[#17231b]/55 p-0 sm:items-center sm:p-5">
           <section role="dialog" aria-modal="true" aria-labelledby="report-heading" className="w-full max-w-lg bg-[#fffdf7] p-5 sm:p-7">
             <div className="flex items-start justify-between gap-4">

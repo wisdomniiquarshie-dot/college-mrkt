@@ -1,111 +1,280 @@
 "use client";
 
-import { useDeferredValue, useState } from "react";
-import { Search, SlidersHorizontal } from "lucide-react";
-import { CATEGORIES, type Listing } from "@/lib/marketplace";
+import Link from "next/link";
+import {
+  ArrowRight,
+  BookOpen,
+  Coffee,
+  House,
+  Laptop,
+  MapPin,
+  Search,
+  Shirt,
+  ShoppingBag,
+  Sofa,
+  Sparkles,
+  Tag,
+  Wrench,
+  type LucideIcon,
+} from "lucide-react";
+import { useDeferredValue, useState, type FormEvent } from "react";
 import { ListingCard } from "@/components/marketplace/listing-card";
+import { CATEGORIES, type Category, type Listing } from "@/lib/marketplace";
 
 type CampusFeedProps = {
   listings: Listing[];
   sellerPhones: Record<string, string>;
-  isDemo: boolean;
+  sellerAreas: Record<string, string>;
+  connectionUnavailable: boolean;
 };
 
-export function CampusFeed({ listings, sellerPhones, isDemo }: CampusFeedProps) {
-  const [category, setCategory] = useState("All");
+const categoryIcons: Record<Category, LucideIcon> = {
+  Electronics: Laptop,
+  Fashion: Shirt,
+  "Hostel Gear": House,
+  Textbooks: BookOpen,
+  "Food and Drinks": Coffee,
+  "Beauty and Personal Care": Sparkles,
+  Accessories: ShoppingBag,
+  Furniture: Sofa,
+  Services: Wrench,
+  Accommodation: House,
+  Other: Tag,
+};
+
+function createdAt(listing: Listing) {
+  const timestamp = new Date(listing.created_at).getTime();
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+}
+
+export function CampusFeed({
+  listings,
+  sellerPhones,
+  sellerAreas,
+  connectionUnavailable,
+}: CampusFeedProps) {
   const [search, setSearch] = useState("");
+  const [category, setCategory] = useState<Category | "All">("All");
+  const [campusArea, setCampusArea] = useState("All campuses");
+  const [minimumPrice, setMinimumPrice] = useState("");
+  const [maximumPrice, setMaximumPrice] = useState("");
+  const [sortOrder, setSortOrder] = useState("newest");
   const deferredSearch = useDeferredValue(search.trim().toLowerCase());
-  const visibleListings = listings.filter((listing) => {
-    const matchesCategory = category === "All" || listing.category === category;
-    return matchesCategory && listing.title.toLowerCase().includes(deferredSearch);
-  });
+  const campusAreas = [...new Set(Object.values(sellerAreas).filter(Boolean))]
+    .sort((first, second) => first.localeCompare(second));
+
+  const visibleListings = listings
+    .filter((listing) => {
+      const listingText = `${listing.title} ${listing.category} ${listing.description} ${sellerAreas[listing.seller_id] ?? ""}`.toLowerCase();
+      const price = Number(listing.price);
+      return (
+        (!deferredSearch || listingText.includes(deferredSearch))
+        && (category === "All" || listing.category === category)
+        && (campusArea === "All campuses" || sellerAreas[listing.seller_id] === campusArea)
+        && (!minimumPrice || price >= Number(minimumPrice))
+        && (!maximumPrice || price <= Number(maximumPrice))
+      );
+    })
+    .sort((first, second) => {
+      if (sortOrder === "price-low") return first.price - second.price;
+      if (sortOrder === "price-high") return second.price - first.price;
+      return createdAt(second) - createdAt(first);
+    });
+
+  const categoryCount = (value: Category | "All") =>
+    value === "All"
+      ? listings.length
+      : listings.filter((listing) => listing.category === value).length;
+
+  function handleSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    document.getElementById("browse-listings")?.scrollIntoView({ behavior: "smooth" });
+  }
 
   return (
-    <main className="mx-auto w-full max-w-[1440px] px-4 pb-16 sm:px-7 lg:px-10">
-      <section className="feed-intro flex flex-col justify-between gap-6 border-b border-[#d9d9ce] py-8 sm:flex-row sm:items-end sm:py-11">
-        <div>
-          <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.16em] text-[#c35335]">
-            Accra Technical University
+    <main className="storefront mx-auto w-full max-w-[1480px] px-4 pb-16 pt-5 sm:px-6 lg:px-8">
+      <section className="store-hero" aria-labelledby="marketplace-title">
+        <div className="store-hero-copy">
+          <p className="store-eyebrow"><MapPin aria-hidden="true" size={14} /> ATU &amp; every campus</p>
+          <h1 id="marketplace-title">Good finds.<br /><span>Good for student life.</span></h1>
+          <p className="store-hero-description">
+            Buy, sell and pass things on with students around Accra Technical University and beyond.
           </p>
-          <h1 className="max-w-[700px] font-serif text-4xl font-medium leading-[1.02] text-[#1f2e25] sm:text-5xl">
-            Good finds,<br className="hidden sm:block" /> close to home.
-          </h1>
-          <p className="mt-4 max-w-md text-sm leading-6 text-[#626a60] sm:text-base">
-            The campus marketplace for things worth passing on.
-          </p>
+          <form className="store-search" role="search" onSubmit={handleSearch}>
+            <Search aria-hidden="true" size={18} />
+            <label className="sr-only" htmlFor="marketplace-search">Search campus listings</label>
+            <input
+              id="marketplace-search"
+              type="search"
+              placeholder="Search books, gadgets, fashion..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+            <button type="submit" aria-label="Search listings"><Search aria-hidden="true" size={17} /></button>
+          </form>
+          <div className="store-hero-links">
+            <a href="#browse-listings">Explore listings <ArrowRight aria-hidden="true" size={14} /></a>
+            <Link href="/listings/new">List something <ArrowRight aria-hidden="true" size={14} /></Link>
+          </div>
         </div>
-        <div className="flex items-center gap-3 text-xs font-medium text-[#72776d]">
-          <span className="h-px w-9 bg-[#bdc0b4]" />
-          <span>{listings.length} listings on campus</span>
+        <div className="store-hero-art" aria-hidden="true">
+          <div className="store-hero-emblem">
+            <ShoppingBag size={54} strokeWidth={1.2} />
+            <span>Campus finds, close by</span>
+          </div>
+          <div className="hero-float absolute left-[9%] top-[15%] grid h-14 w-14 place-items-center rounded-lg border border-white/15 bg-white/10 text-[#f5dfaa] shadow-lg backdrop-blur-sm">
+            <BookOpen size={25} strokeWidth={1.5} />
+          </div>
+          <div className="hero-float hero-float-bottom absolute right-[13%] top-[14%] grid h-12 w-12 place-items-center rounded-full border border-white/15 bg-white/10 text-[#f5dfaa] shadow-lg backdrop-blur-sm">
+            <Laptop size={22} strokeWidth={1.5} />
+          </div>
+          <div className="store-hero-stamp"><span>Made for</span><strong>student<br />budgets</strong></div>
         </div>
       </section>
 
-      <section aria-label="Browse listings" className="pt-6 sm:pt-8">
-        <div className="sticky top-[66px] z-20 -mx-4 border-b border-[#d8d9d1] bg-[#fbfaf4]/95 px-4 py-3 backdrop-blur sm:top-[72px] sm:mx-0 sm:px-0">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="relative w-full sm:max-w-[360px]">
-              <Search aria-hidden="true" className="absolute left-3.5 top-1/2 h-[17px] w-[17px] -translate-y-1/2 text-[#737a70]" />
-              <label className="sr-only" htmlFor="listing-search">Search listings</label>
-              <input
-                id="listing-search"
-                className="h-11 w-full border border-[#d2d4c9] bg-white pl-11 pr-4 text-sm text-[#26342b] outline-none transition focus:border-[#42664c] focus:ring-2 focus:ring-[#42664c]/15"
-                placeholder="Search the marketplace"
-                type="search"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
-            </div>
-            <div className="hidden items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-[#81867c] sm:flex">
-              <SlidersHorizontal aria-hidden="true" className="h-4 w-4" />
-              <span>Browse by</span>
-            </div>
-          </div>
+      {connectionUnavailable && (
+        <p role="alert" className="store-status mt-4">
+          <span className="store-status-dot" />
+          Listings are temporarily unavailable. Please try again in a little while.
+        </p>
+      )}
 
-          <div className="category-rail -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
-            {["All", ...CATEGORIES].map((item) => (
+      <section className="mt-8" aria-labelledby="categories-title">
+        <div className="store-section-heading">
+          <div>
+            <p className="store-kicker">Find your thing</p>
+            <h2 id="categories-title">Shop by category</h2>
+          </div>
+          <span>{listings.length} campus {listings.length === 1 ? "listing" : "listings"}</span>
+        </div>
+        <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12">
+          <button
+            type="button"
+            className="store-category border border-[#e1ded4] transition"
+            aria-pressed={category === "All"}
+            onClick={() => setCategory("All")}
+          >
+            <span className="store-category-icon"><ShoppingBag aria-hidden="true" size={19} /></span>
+            <span>All items</span>
+            <small>{categoryCount("All")}</small>
+          </button>
+          {CATEGORIES.filter((item) => item !== "Accommodation").map((item) => {
+            const Icon = categoryIcons[item];
+            return (
               <button
                 key={item}
                 type="button"
+                className="store-category border border-[#e1ded4] transition"
                 aria-pressed={category === item}
                 onClick={() => setCategory(item)}
-                className={`shrink-0 border px-4 py-2.5 text-xs font-semibold transition-colors sm:text-sm ${
-                  category === item
-                    ? "border-[#26392d] bg-[#26392d] text-white"
-                    : "border-[#d2d4c9] bg-transparent text-[#576057] hover:border-[#899388] hover:bg-white"
-                }`}
               >
-                {item}
+                <span className="store-category-icon"><Icon aria-hidden="true" size={19} /></span>
+                <span>{item}</span>
+                <small>{categoryCount(item)}</small>
               </button>
-            ))}
+            );
+          })}
+        </div>
+      </section>
+
+      <section id="browse-listings" className="mt-9 scroll-mt-32" aria-labelledby="listings-title">
+        <div className="store-section-heading">
+          <div>
+            <p className="store-kicker">From your campus community</p>
+            <h2 id="listings-title">Browse student finds</h2>
+            <p className="store-subtitle">Connect with sellers and arrange a safe campus handoff.</p>
           </div>
+          <Link href="/listings/new" className="store-sell-link"><Tag aria-hidden="true" size={14} /> Sell an item</Link>
         </div>
 
-        {isDemo && (
-          <p className="mt-5 border-l-2 border-[#d29337] bg-[#f5f0df] px-3 py-2 text-xs leading-5 text-[#62563e]">
-            Preview listings are shown. Add your Supabase credentials to load the live campus marketplace.
-          </p>
-        )}
+        <div className="store-filter-bar" aria-label="Filter listings">
+          <label className="store-filter-label" htmlFor="campus-area-filter"><MapPin aria-hidden="true" size={14} /> Filter your finds</label>
+          <select
+            id="campus-area-filter"
+            className="form-control"
+            value={campusArea}
+            onChange={(event) => setCampusArea(event.target.value)}
+          >
+            <option>All campuses</option>
+            {campusAreas.map((area) => <option key={area}>{area}</option>)}
+          </select>
+          <label className="sr-only" htmlFor="minimum-price-filter">Minimum price in Ghana cedis</label>
+          <input
+            id="minimum-price-filter"
+            className="form-control"
+            type="number"
+            min="0"
+            placeholder="Min price (GH₵)"
+            value={minimumPrice}
+            onChange={(event) => setMinimumPrice(event.target.value)}
+          />
+          <label className="sr-only" htmlFor="maximum-price-filter">Maximum price in Ghana cedis</label>
+          <input
+            id="maximum-price-filter"
+            className="form-control"
+            type="number"
+            min="0"
+            placeholder="Max price (GH₵)"
+            value={maximumPrice}
+            onChange={(event) => setMaximumPrice(event.target.value)}
+          />
+          <label className="sr-only" htmlFor="listing-sort">Sort listings</label>
+          <select
+            id="listing-sort"
+            className="form-control"
+            value={sortOrder}
+            onChange={(event) => setSortOrder(event.target.value)}
+          >
+            <option value="newest">Recently listed</option>
+            <option value="price-low">Price: low to high</option>
+            <option value="price-high">Price: high to low</option>
+          </select>
+        </div>
 
-        <div className="mb-4 mt-7 flex items-center justify-between sm:mt-9">
-          <h2 className="font-serif text-2xl text-[#24332a] sm:text-[28px]">Fresh on campus</h2>
-          <span className="text-xs text-[#757b72]">{visibleListings.length} results</span>
+        <div className="store-section-heading mt-5">
+          <h2 className="!mt-0 !font-sans !text-base !font-bold">
+            {category === "All" ? "All campus listings" : category}
+          </h2>
+          <span>{visibleListings.length} {visibleListings.length === 1 ? "item" : "items"}</span>
         </div>
 
         {visibleListings.length ? (
-          <div className="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-10 lg:grid-cols-4 lg:gap-x-7">
-            {visibleListings.map((listing, index) => (
+          <div className="store-listing-grid">
+            {visibleListings.map((listing) => (
               <ListingCard
                 key={listing.id}
                 listing={listing}
                 sellerPhone={sellerPhones[listing.seller_id]}
-                loading={index === 0 ? "eager" : "lazy"}
+                sellerArea={sellerAreas[listing.seller_id]}
               />
             ))}
           </div>
         ) : (
-          <div className="border-y border-[#d9d9ce] py-16 text-center">
-            <h3 className="font-serif text-2xl text-[#25362c]">Nothing in this corner yet.</h3>
-            <p className="mt-2 text-sm text-[#737a70]">Try another search or category.</p>
+          <div className="store-empty-state">
+            <ShoppingBag aria-hidden="true" size={30} />
+            <h3>{listings.length ? "No listings match your search" : "Your campus marketplace starts here"}</h3>
+            <p>
+              {listings.length
+                ? "Try another search or clear a filter to see more student finds."
+                : "Be among the first to share something useful with students at ATU and other campuses."}
+            </p>
+            {listings.length ? (
+              <button
+                type="button"
+                className="mt-3 text-xs font-bold text-[#15452e] underline underline-offset-2"
+                onClick={() => {
+                  setSearch("");
+                  setCategory("All");
+                  setCampusArea("All campuses");
+                  setMinimumPrice("");
+                  setMaximumPrice("");
+                }}
+              >
+                Clear filters
+              </button>
+            ) : (
+              <Link href="/listings/new">Create the first listing <ArrowRight aria-hidden="true" size={14} /></Link>
+            )}
           </div>
         )}
       </section>

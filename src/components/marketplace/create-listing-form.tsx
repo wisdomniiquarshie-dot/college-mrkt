@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { ACCOUNT_TYPES, CATEGORIES, CONDITIONS, formatPrice, formatWhatsAppNumber, type AccountType, type MarketplacePaymentSettings, type PlanDefinition, type PlanSubscription } from "@/lib/marketplace";
 import { getSupabaseBrowserClient, getSupabaseErrorMessage } from "@/lib/supabase/client";
-import { isMissingContactVisibilityColumn, isMissingSupabaseTable } from "@/lib/supabase/schema-compat";
+import { isMissingContactVisibilityColumn, isMissingListingColumn, isMissingSupabaseTable } from "@/lib/supabase/schema-compat";
 
 type Photo = { file: File; preview: string };
 
@@ -134,7 +134,10 @@ export function CreateListingForm({
         .eq("status", "active")
         .eq("is_available", true);
       let { count, error: countError } = countResult;
-      if (countError && String(countError.message ?? "").includes("listings.status")) {
+      if (countError && (
+        isMissingListingColumn(countError, "status")
+        || isMissingListingColumn(countError, "is_available")
+      )) {
         countResult = await client!
           .from("listings")
           .select("id", { count: "exact", head: true })
@@ -249,7 +252,10 @@ export function CreateListingForm({
         .eq("status", "active")
         .eq("is_available", true);
       let { count, error: countError } = countResult;
-      if (countError && String(countError.message ?? "").includes("listings.status")) {
+      if (countError && (
+        isMissingListingColumn(countError, "status")
+        || isMissingListingColumn(countError, "is_available")
+      )) {
         countResult = await supabase
           .from("listings")
           .select("id", { count: "exact", head: true })

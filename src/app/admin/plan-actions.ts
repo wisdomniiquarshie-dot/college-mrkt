@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { ACCOUNT_TYPES, type AccountType } from "@/lib/marketplace";
+import { ACCOUNT_TYPES, isFreePlanKey, type AccountType } from "@/lib/marketplace";
 import { getMarketplaceAdminSession } from "@/lib/marketplace-admin";
 
 async function getAdminSession() {
@@ -37,6 +37,7 @@ export async function savePlanAction(formData: FormData) {
   if (!admin) redirect("/admin?error=access-denied");
 
   const planId = String(formData.get("planId") ?? "").trim();
+  const planKey = String(formData.get("planKey") ?? "").trim() as AccountType;
   const planName = String(formData.get("planName") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const billingPeriod = String(formData.get("billingPeriod") ?? "").trim();
@@ -50,7 +51,7 @@ export async function savePlanAction(formData: FormData) {
   const effectiveStart = dateValue(formData, "effectiveStart");
   const effectiveEnd = dateValue(formData, "effectiveEnd");
 
-  if (!planId || !planName || !description || !billingPeriod || !["active", "inactive"].includes(subscriptionStatus)) {
+  if (!planId || !ACCOUNT_TYPES.some(({ value }) => value === planKey) || !planName || !description || !billingPeriod || !["active", "inactive"].includes(subscriptionStatus)) {
     redirect("/admin?error=invalid-plan");
   }
   if (listingLimit < 1) redirect("/admin?error=invalid-plan");
@@ -66,7 +67,7 @@ export async function savePlanAction(formData: FormData) {
     .update({
       plan_name: planName,
       description,
-      price_ghs: 0,
+      ...(isFreePlanKey(planKey) ? { price_ghs: 0 } : {}),
       min_proposed_price: minProposedPrice,
       max_proposed_price: maxProposedPrice,
       billing_period: billingPeriod,

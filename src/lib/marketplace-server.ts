@@ -1,22 +1,31 @@
 import "server-only";
 
-import { PLAN_DEFINITIONS, toPlanDefinition, type MarketplacePaymentSettings, type PlanDefinition } from "@/lib/marketplace";
+import { isFreePlanKey, PLAN_DEFINITIONS, toPlanDefinition, type MarketplacePaymentSettings, type PlanDefinition } from "@/lib/marketplace";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function getAvailablePlanDefinitions(): Promise<PlanDefinition[] | null> {
   const supabase = await getSupabaseServerClient();
-  if (!supabase) return PLAN_DEFINITIONS;
+  if (!supabase) return PLAN_DEFINITIONS.map((plan) => ({
+    ...plan,
+    price: isFreePlanKey(plan.key) ? 0 : plan.price,
+  }));
 
   const { data, error } = await supabase
     .from("marketplace_plan_settings")
     .select("*")
     .order("price_ghs", { ascending: true });
 
-  if (error || !data) return PLAN_DEFINITIONS;
+  if (error || !data) return PLAN_DEFINITIONS.map((plan) => ({
+    ...plan,
+    price: isFreePlanKey(plan.key) ? 0 : plan.price,
+  }));
 
   const now = Date.now();
   return data
-    .map((plan) => ({ ...toPlanDefinition(plan), price: 0 }))
+    .map((plan) => ({
+      ...toPlanDefinition(plan),
+      price: isFreePlanKey(plan.plan_key) ? 0 : Number(plan.price_ghs),
+    }))
     .filter((plan) => (
       plan.isActive
       && plan.availableForPurchase

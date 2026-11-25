@@ -49,6 +49,16 @@ export type PlanDefinition = {
   availableForPurchase: boolean;
 };
 
+export const FREE_PLAN_KEYS: readonly AccountType[] = [
+  "student_seller",
+  "student_business",
+  "campus_business",
+];
+
+export function isFreePlanKey(key: AccountType): boolean {
+  return FREE_PLAN_KEYS.includes(key);
+}
+
 export type PaymentVerificationStatus = "pending" | "verified" | "rejected";
 
 export type MarketplacePlan = {
@@ -145,7 +155,7 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
   {
     key: "student_business",
     name: "Student Business",
-    price: 20,
+    price: 0,
     listingLimit: 20,
     description: "For student-run businesses and side hustles near campus.",
     details: ["20 active listings", "Business profile", "WhatsApp + phone contact", "Optional featured promos"],
@@ -163,7 +173,7 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
   {
     key: "campus_business",
     name: "Business Plus",
-    price: 50,
+    price: 0,
     listingLimit: 50,
     description: "For larger campus-area businesses and retail operators.",
     details: ["50 active listings", "Enhanced profile", "Priority promotional options", "Better visibility tools"],

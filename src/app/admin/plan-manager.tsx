@@ -16,7 +16,7 @@ export function PlanManager({ plans }: { plans: MarketplacePlan[] }) {
         <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#c35335]">Plan settings</p>
         <h2 className="mt-2 font-serif text-3xl text-[#213329]">Plans and pricing</h2>
         <p className="mt-3 text-sm leading-6 text-[#616b62]">
-          All plans are free for everyone. Saving plan settings affects new purchases only; existing subscriptions keep their saved terms until an administrator explicitly changes them.
+          Student Seller, Student Business and Business Plus are free for now. Saving plan settings affects new purchases only; existing subscriptions keep their saved terms until an administrator explicitly changes them.
         </p>
       </div>
 
@@ -24,6 +24,7 @@ export function PlanManager({ plans }: { plans: MarketplacePlan[] }) {
         {plans.map((plan) => (
           <form key={plan.id} action={savePlanAction} className="border border-[#d9d9ce] bg-[#fffdf9] p-5 sm:p-6">
             <input type="hidden" name="planId" value={plan.id} />
+            <input type="hidden" name="planKey" value={plan.plan_key} />
             <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h3 className="font-serif text-2xl text-[#24342a]">{plan.plan_name}</h3>
